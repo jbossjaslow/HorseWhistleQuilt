@@ -1,0 +1,26 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "###",
+        "ASE",
+        "###"
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:oak_planks"
+        },
+        "A": {
+            "item": "minecraft:apple"
+        },
+        "S": {
+            "item": "minecraft:saddle"
+        },
+        "E": {
+            "item": "minecraft:ender_pearl"
+        }
+    },
+    "result": {
+        "item": "horse_whistle:horse_whistle_item",
+        "count": 1
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "parent": "item/generated",
+    "textures": {
+        "layer0": "horse_whistle:item/horse_whistle_item"
+    }
+}
