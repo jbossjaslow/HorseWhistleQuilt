@@ -74,7 +74,7 @@ public class HorseWhistleItem extends Item {
 			});
 
 			String associatedHorseIdString = NBTUtil.getNBTFrom(stack, HORSE_ID_KEY);
-			double radius = 100;
+			double radius = 500;
 			double xPos = user.getX();
 			double yPos = user.getY();
 			double zPos = user.getZ();
@@ -95,6 +95,7 @@ public class HorseWhistleItem extends Item {
 					return TypedActionResult.consume(stack);
 				}
 			}
+			HotBarUtil.displayActionBarText("Could not find " + NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY));
 		}
 
 		return TypedActionResult.fail(stack);
@@ -165,8 +166,10 @@ public class HorseWhistleItem extends Item {
 		double zPos = player.getZ();
 		// TODO: make teleport random, ensure it teleports to a valid block
 
-		double tr = 5; // teleport radius
-		horse.teleport(xPos + tr, yPos, zPos + tr);
+		int randomX = horse.getRandom().nextInt(10) - 5;
+		int randomZ = horse.getRandom().nextInt(10) - 5;
+
+		horse.teleport(xPos + randomX, yPos, zPos + randomZ);
 		world.playSound(
 			null,
 			player.getBlockPos(),
