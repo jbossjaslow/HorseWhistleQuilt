@@ -1,5 +1,6 @@
 package io.github.jbossjaslow.horse_whistle.items;
 
+import io.github.jbossjaslow.horse_whistle.util.NBTUtil;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EntityType;
@@ -8,7 +9,6 @@ import net.minecraft.entity.passive.HorseEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
@@ -22,7 +22,16 @@ import org.quiltmc.qsl.item.setting.api.QuiltItemSettings;
 import java.util.List;
 
 public class HorseWhistleItem extends Item {
-	private static final String HORSE_TAG_KEY = "associatedHorse";
+	private static final String HORSE_ID_KEY = "horse_id";
+	private static final String HORSE_NAME_KEY = "horse_name";
+
+	/*
+	##################################################
+
+	PUBLIC METHODS
+
+	##################################################
+	 */
 
 	public HorseWhistleItem(QuiltItemSettings settings) {
 		super(
@@ -43,17 +52,18 @@ public class HorseWhistleItem extends Item {
 		}
 
 		if (user.getPose() == EntityPose.CROUCHING) {
-			removeHorseNBTFrom(stack);
+			NBTUtil.removeNBTFrom(stack, HORSE_ID_KEY);
+			NBTUtil.removeNBTFrom(stack, HORSE_NAME_KEY);
 			return TypedActionResult.consume(stack);
 		}
 
-		if (!getHorseNBTFrom(stack).isEmpty()) {
+		if (!NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty()) {
 			stack.setCooldown(3);
 			stack.damage(1, user, (p) -> {
 				p.sendToolBreakStatus(hand);
 			});
 
-			String associatedHorseIdString = getHorseNBTFrom(stack);
+			String associatedHorseIdString = NBTUtil.getNBTFrom(stack, HORSE_ID_KEY);
 			double radius = 100;
 			double xPos = user.getX();
 			double yPos = user.getY();
@@ -68,19 +78,7 @@ public class HorseWhistleItem extends Item {
 			}
 		}
 
-//		user.getWorld().playSound(null, user.getBlockPos(), SoundEvents.BLOCK_ANVIL_LAND, SoundCategory.MASTER, 0.5f, 1f);
 		return TypedActionResult.fail(stack);
-	}
-
-	private void teleportHorse(HorseEntity horse, PlayerEntity player, World world) {
-		double xPos = player.getX();
-		double yPos = player.getY();
-		double zPos = player.getZ();
-		// make teleport random, ensure it teleports to a valid block
-
-		double tr = 5; // teleport radius
-		horse.teleport(xPos + tr, yPos, zPos + tr);
-		world.playSound(null, player.getBlockPos(), SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.MASTER, 1f, 1f);
 	}
 
 	@Override
@@ -92,7 +90,7 @@ public class HorseWhistleItem extends Item {
 			return ActionResult.FAIL;
 		}
 
-		if (entity.getType() != EntityType.HORSE || !getHorseNBTFrom(stack).isEmpty()) {
+		if (entity.getType() != EntityType.HORSE || !NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty()) {
 			return ActionResult.PASS;
 		}
 
@@ -101,7 +99,12 @@ public class HorseWhistleItem extends Item {
 		if (horseEntity.isTame() && horseEntity.getOwnerUuid() == user.getUuid()) {
 			user.getWorld().playSound(null, user.getBlockPos(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 0.5f, 0.5f);
 
-			writeHorseNBTTo(stack, horseEntity);
+			NBTUtil.writeNBTTo(stack, HORSE_ID_KEY, horseEntity.getUuidAsString());
+			if (horseEntity.hasCustomName()) {
+				NBTUtil.writeNBTTo(stack, HORSE_NAME_KEY, horseEntity.getCustomName().getString());
+			} else {
+				NBTUtil.writeNBTTo(stack, HORSE_NAME_KEY, horseEntity.getName().getString());
+			}
 
 			return ActionResult.success(false);
 		} else {
@@ -109,34 +112,37 @@ public class HorseWhistleItem extends Item {
 		}
 	}
 
-	private void writeHorseNBTTo(ItemStack stack, HorseEntity horse) {
-		NbtCompound nbt = new NbtCompound();
-		nbt.putString(HORSE_TAG_KEY, horse.getUuidAsString());
-		stack.setNbt(nbt);
-	}
-
-	private void removeHorseNBTFrom(ItemStack stack) {
-		stack.removeSubNbt(HORSE_TAG_KEY);
-	}
-
-	private String getHorseNBTFrom(ItemStack stack) {
-		if (stack.hasNbt())
-			return stack.getNbt().getString(HORSE_TAG_KEY);
-        else
-			return "";
-	}
-
 	@Override
 	public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
 		super.appendTooltip(stack, world, tooltip, context);
 
-		if (!getHorseNBTFrom(stack).isEmpty()) {
-			tooltip.add(Text.translatable("Attuned to horse").formatted(Formatting.GRAY));
+		if (!NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY).isEmpty()) {
+			String tooltipText = "Attuned to " + NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY);
+			tooltip.add(Text.translatable(tooltipText).formatted(Formatting.GRAY));
 		}
 	}
 
 	@Override
 	public boolean hasGlint(ItemStack stack) {
-		return !getHorseNBTFrom(stack).isEmpty();
+		return super.hasGlint(stack) || !NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty();
+	}
+
+	/*
+	##################################################
+
+	PRIVATE METHODS
+
+	##################################################
+	 */
+
+	private void teleportHorse(HorseEntity horse, PlayerEntity player, World world) {
+		double xPos = player.getX();
+		double yPos = player.getY();
+		double zPos = player.getZ();
+		// TODO: make teleport random, ensure it teleports to a valid block
+
+		double tr = 5; // teleport radius
+		horse.teleport(xPos + tr, yPos, zPos + tr);
+		world.playSound(null, player.getBlockPos(), SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.MASTER, 1f, 1f);
 	}
 }
