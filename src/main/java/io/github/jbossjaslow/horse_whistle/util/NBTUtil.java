@@ -31,4 +31,11 @@ public class NBTUtil {
 		else
 			return "";
 	}
+
+	public static boolean hasNBTFor(ItemStack stack, String key) {
+		if (stack.hasNbt())
+			return !stack.getNbt().getString(key).isEmpty();
+		else
+			return false;
+	}
 }

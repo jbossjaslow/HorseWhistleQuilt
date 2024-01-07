@@ -1,5 +1,6 @@
 package io.github.jbossjaslow.horse_whistle.items;
 
+import io.github.jbossjaslow.horse_whistle.util.HotBarUtil;
 import io.github.jbossjaslow.horse_whistle.util.NBTUtil;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.entity.EntityPose;
@@ -47,17 +48,26 @@ public class HorseWhistleItem extends Item {
 
 		ItemStack stack = user.getStackInHand(hand);
 
-		if (user.getWorld().isClient()) { // We cannot be on the client to check the UUID of the player
-			return TypedActionResult.fail(stack);
-		}
+        // We cannot be on the client
+        if (user.getWorld().isClient()) return TypedActionResult.fail(stack);
 
 		if (user.getPose() == EntityPose.CROUCHING) {
-			NBTUtil.removeNBTFrom(stack, HORSE_ID_KEY);
-			NBTUtil.removeNBTFrom(stack, HORSE_NAME_KEY);
-			return TypedActionResult.consume(stack);
+			if (NBTUtil.hasNBTFor(stack, HORSE_ID_KEY)) {
+				HotBarUtil.displayActionBarText("Removed attunement from " + NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY));
+				NBTUtil.removeNBTFrom(stack, HORSE_ID_KEY);
+				NBTUtil.removeNBTFrom(stack, HORSE_NAME_KEY);
+				user.getWorld().playSound(
+					null,
+					user.getBlockPos(),
+					SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP,
+					SoundCategory.MASTER,
+					0.5f,
+				0.5f);
+				return TypedActionResult.consume(stack);
+			} else return TypedActionResult.pass(stack);
 		}
 
-		if (!NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty()) {
+		if (NBTUtil.hasNBTFor(stack, HORSE_ID_KEY)) {
 			stack.setCooldown(3);
 			stack.damage(1, user, (p) -> {
 				p.sendToolBreakStatus(hand);
@@ -68,8 +78,17 @@ public class HorseWhistleItem extends Item {
 			double xPos = user.getX();
 			double yPos = user.getY();
 			double zPos = user.getZ();
-			Box searchArea = new Box(xPos - radius, yPos - radius, zPos - radius, xPos + radius, yPos + radius, zPos + radius);
-			List<HorseEntity> horses = world.getEntitiesByType(EntityType.HORSE, searchArea, EntityPredicates.VALID_LIVING_ENTITY);
+			Box searchArea = new Box(
+				xPos - radius,
+				yPos - radius,
+				zPos - radius,
+				xPos + radius,
+				yPos + radius,
+				zPos + radius);
+			List<HorseEntity> horses = world.getEntitiesByType(
+				EntityType.HORSE,
+				searchArea,
+				EntityPredicates.VALID_LIVING_ENTITY);
 			for (HorseEntity h : horses) {
 				if (h.getUuidAsString().equals(associatedHorseIdString)) {
 					teleportHorse(h, user, world);
@@ -86,18 +105,22 @@ public class HorseWhistleItem extends Item {
 		super.useOnEntity(stack, user, entity, hand);
 		stack.setCooldown(3);
 
-		if (user.getWorld().isClient()) { // We cannot be on the client to check the UUID of the player
-			return ActionResult.FAIL;
-		}
+        // We cannot be on the client to check the UUID of the player
+        if (user.getWorld().isClient()) return ActionResult.FAIL;
 
-		if (entity.getType() != EntityType.HORSE || !NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty()) {
-			return ActionResult.PASS;
-		}
+		if (entity.getType() != EntityType.HORSE || NBTUtil.hasNBTFor(stack, HORSE_ID_KEY))
+            return ActionResult.PASS;
 
 		HorseEntity horseEntity = (HorseEntity) entity;
 
 		if (horseEntity.isTame() && horseEntity.getOwnerUuid() == user.getUuid()) {
-			user.getWorld().playSound(null, user.getBlockPos(), SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.MASTER, 0.5f, 0.5f);
+			user.getWorld().playSound(
+				null,
+				user.getBlockPos(),
+				SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP,
+				SoundCategory.MASTER,
+				0.5f,
+				0.5f);
 
 			NBTUtil.writeNBTTo(stack, HORSE_ID_KEY, horseEntity.getUuidAsString());
 			if (horseEntity.hasCustomName()) {
@@ -106,6 +129,7 @@ public class HorseWhistleItem extends Item {
 				NBTUtil.writeNBTTo(stack, HORSE_NAME_KEY, horseEntity.getName().getString());
 			}
 
+			HotBarUtil.displayActionBarText("Attuned whistle to " + NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY));
 			return ActionResult.success(false);
 		} else {
 			return ActionResult.PASS;
@@ -116,7 +140,7 @@ public class HorseWhistleItem extends Item {
 	public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
 		super.appendTooltip(stack, world, tooltip, context);
 
-		if (!NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY).isEmpty()) {
+		if (NBTUtil.hasNBTFor(stack, HORSE_NAME_KEY)) {
 			String tooltipText = "Attuned to " + NBTUtil.getNBTFrom(stack, HORSE_NAME_KEY);
 			tooltip.add(Text.translatable(tooltipText).formatted(Formatting.GRAY));
 		}
@@ -124,7 +148,7 @@ public class HorseWhistleItem extends Item {
 
 	@Override
 	public boolean hasGlint(ItemStack stack) {
-		return super.hasGlint(stack) || !NBTUtil.getNBTFrom(stack, HORSE_ID_KEY).isEmpty();
+		return super.hasGlint(stack) || NBTUtil.hasNBTFor(stack, HORSE_ID_KEY);
 	}
 
 	/*
@@ -143,6 +167,12 @@ public class HorseWhistleItem extends Item {
 
 		double tr = 5; // teleport radius
 		horse.teleport(xPos + tr, yPos, zPos + tr);
-		world.playSound(null, player.getBlockPos(), SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.MASTER, 1f, 1f);
+		world.playSound(
+			null,
+			player.getBlockPos(),
+			SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT,
+			SoundCategory.MASTER,
+			1f,
+			1f);
 	}
 }
