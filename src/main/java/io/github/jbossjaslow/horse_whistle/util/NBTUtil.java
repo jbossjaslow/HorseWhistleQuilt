@@ -5,7 +5,7 @@ import net.minecraft.nbt.NbtCompound;
 
 public class NBTUtil {
 	/**
-	 * @param stack The item stack to which NBT is applied
+	 * @param stack The textures.item stack to which NBT is applied
 	 * @param key The key for the NBT data
 	 * @param value The value for the NBT data
 	 */
@@ -21,7 +21,7 @@ public class NBTUtil {
 	}
 
 	/**
-	 * @param stack The item stack to which NBT was applied
+	 * @param stack The textures.item stack to which NBT was applied
 	 * @param key The key associated with the NBT data
 	 * @return The value from the NBT. Empty string if not present
 	 */

@@ -26,7 +26,7 @@ public class HorseWhistle implements ModInitializer {
 		LOGGER.info("Hello Quilt world from {}!", mod.metadata().name());
 
 		Registry.register(Registries.ITEM, new Identifier(mod.metadata().id(), "horse_whistle_item"), HORSE_WHISTLE);
-		ItemGroupEvents.modifyEntriesEvent(ItemGroups.INGREDIENTS).register(entries -> {
+		ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS_AND_UTILITIES).register(entries -> {
 			entries.addItem(HORSE_WHISTLE);
 		});
 	}
